@@ -19,6 +19,8 @@ int gettoken(void);
 int getch(void);
 void ungetch(int);
 
+int eatInputSpaces(void);
+
 int main(void) {
   while (gettoken() != EOF) {
     strcpy(datatype, token);
@@ -26,7 +28,9 @@ int main(void) {
     dcl();
     if (tokentype != '\n')
       printf("syntax error\n");
-    printf("%s: %s %s\n", name, out, datatype);
+    else
+      /* output only if there're no errors */
+      printf("%s: %s %s\n", name, out, datatype);
   }
 
   return 0;
@@ -34,7 +38,6 @@ int main(void) {
 
 void dcl(void) {
   int ns;
-  
   for (ns = 0; gettoken() == '*'; )
     ns++;
   dirdcl();
@@ -43,7 +46,6 @@ void dcl(void) {
 }
 void dirdcl(void) {
   int type;
-  
   if (tokentype == '(') {
     dcl();
     if (tokentype != ')')
@@ -52,7 +54,7 @@ void dirdcl(void) {
     strcpy(name, token);
   } else
     printf("error: expected name or (dcl)\n");
-    
+  
   while ((type = gettoken()) == PARENS || type == BRACKETS) {
     if (type == PARENS) {
       strcat(out, " function returning");
@@ -64,16 +66,25 @@ void dirdcl(void) {
   }
 }
 
+int eatInputSpaces(void) {
+  int c;
+  
+  while ((c = getch()) == ' ' || c == '\t')
+    ;
+  return c;
+}
+
 int gettoken(void) {
   int c, getch(void);
   void ungetch(int);
   char *p = token;
   
-  while ((c = getch()) == ' ' || c == '\t')
-    ;
-  
+  c = eatInputSpaces();
+
   if (c == '(') {
-    if ((c = getch()) == ')') {
+    /* do not fail if there're spaces */
+    c = eatInputSpaces();
+    if (c == ')') {
       strcpy(token, "()");
       return tokentype = PARENS;
     } else {
