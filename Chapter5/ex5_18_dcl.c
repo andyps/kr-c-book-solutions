@@ -1,10 +1,21 @@
-/* TODO: to be completed soon */
+/*
+What was done:
+1) better error handling:
+skip the line if it is erroneous, the next line will be handled properly,
+so the program recovers from error properly
+2) output number of erroneous line
+3) output error in one place
+4) if there's an error, do not output a meaningless result
+5) handle incorrect data type
+6) handle incomplete brackets case
+7) better space handling, e.g. allow spaces between ()
+*/
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
 #define MAXTOKEN 100
-enum { NAME, PARENS, BRACKETS };
+enum { NAME, PARENS, BRACKETS, INCOMPLETE_BRACKETS };
 
 char token[MAXTOKEN];
 char name[MAXTOKEN];
@@ -20,17 +31,50 @@ int getch(void);
 void ungetch(int);
 
 int eatInputSpaces(void);
+void eatTillTheEndOfLine(void);
+
+/* this stores the current line number starting from 1 */
+int line, isError;
+char err[50];
 
 int main(void) {
+  line = 0;
   while (gettoken() != EOF) {
-    strcpy(datatype, token);
+    err[0] = '\0';
     out[0] = '\0';
-    dcl();
-    if (tokentype != '\n')
-      printf("syntax error\n");
-    else
-      /* output only if there're no errors */
-      printf("%s: %s %s\n", name, out, datatype);
+    name[0] = '\0';
+    isError = 0;
+    line++;
+    
+    if (tokentype != NAME) {
+      strcpy(err, "invalid data type");
+      isError = 1;
+    }
+    
+    if (!isError) {
+      strcpy(datatype, token);
+      dcl();
+    }
+
+    if (!isError) {
+      if (tokentype != '\n' && tokentype != EOF) {
+        strcpy(err, "syntax error");
+        isError = 1;
+      } else {
+        /* output only if there're no errors */
+        printf("%s: %s %s\n", name, out, datatype);
+      }
+    }
+    
+    if (isError) {
+      /* skip the line with an error */
+      printf("error on line %d: %s\n", line, err);
+      if (tokentype != '\n' && tokentype != EOF)
+        eatTillTheEndOfLine();
+    }
+    
+    if (tokentype == EOF)
+      break;
   }
 
   return 0;
@@ -38,6 +82,10 @@ int main(void) {
 
 void dcl(void) {
   int ns;
+  
+  if (isError)
+    return;
+
   for (ns = 0; gettoken() == '*'; )
     ns++;
   dirdcl();
@@ -46,14 +94,32 @@ void dcl(void) {
 }
 void dirdcl(void) {
   int type;
+
+  if (isError)
+    return;
+
   if (tokentype == '(') {
     dcl();
-    if (tokentype != ')')
-      printf("error: missing )\n");
+    
+    if (isError)
+      return;
+
+    if (tokentype != ')') {
+      strcpy(err, "missing )");
+      isError = 1;
+      return;
+    }
   } else if (tokentype == NAME) {
     strcpy(name, token);
-  } else
-    printf("error: expected name or (dcl)\n");
+  } else if (tokentype == INCOMPLETE_BRACKETS) {
+    strcpy(err, "incomplete brackets");
+    isError = 1;
+    return;
+  } else {
+    strcpy(err, "expected name or (dcl)");
+    isError = 1;
+    return;
+  }
   
   while ((type = gettoken()) == PARENS || type == BRACKETS) {
     if (type == PARENS) {
@@ -63,6 +129,23 @@ void dirdcl(void) {
       strcat(out, token);
       strcat(out, " of");
     }
+  }
+
+  if (tokentype == INCOMPLETE_BRACKETS) {
+    strcpy(err, "incomplete brackets");
+    isError = 1;
+    return;
+  }
+}
+
+void eatTillTheEndOfLine(void) {
+  int c;
+  
+  while ((c = getch()) != '\n' && c != EOF)
+    ;
+
+  if (c == EOF) {
+    ungetch(c);
   }
 }
 
@@ -92,8 +175,18 @@ int gettoken(void) {
       return tokentype = '(';
     }
   } else if (c == '[') {
-    for (*p++ = c; (*p++ = getch()) != ']'; )
-      ;
+    for (*p++ = c; (c = getch()) != ']' && c != '\n' && c != EOF; )
+      *p++ = c;
+    
+    if (c == '\n' || c == EOF) {
+      ungetch(c);
+      return tokentype = INCOMPLETE_BRACKETS;
+    }
+    
+    // for (*p++ = c; (*p++ = getch()) != ']'; )
+    //   ;
+      
+    *p++ = ']';
     *p = '\0';
     return tokentype = BRACKETS;
   } else if (isalpha(c)) {
@@ -108,7 +201,7 @@ int gettoken(void) {
 
 #define BUFSIZE 100
 
-char buf[BUFSIZE];
+int buf[BUFSIZE];
 int bufp = 0;
 
 int getch(void) {
