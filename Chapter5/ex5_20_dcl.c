@@ -1,21 +1,14 @@
 /*
-What was done:
-1) better error handling:
-skip the line if it is erroneous, the next line will be handled properly,
-so the program recovers from error properly
-2) output number of erroneous line
-3) output error in one place
-4) if there's an error, do not output a meaningless result
-5) handle incorrect data type
-6) handle incomplete brackets case
-7) better space handling, e.g. allow spaces between ()
+1) Accepts only one modifier, that should be either static or const
+and should go before datatype
+2) Allows function arguments but doesn't validate them
 */
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
 #define MAXTOKEN 100
-enum { NAME, PARENS, BRACKETS, INCOMPLETE_BRACKETS };
+enum { NAME, PARENS, BRACKETS, INCOMPLETE_BRACKETS, MODIFIER };
 
 char token[MAXTOKEN];
 char name[MAXTOKEN];
@@ -37,15 +30,23 @@ void eatTillTheEndOfLine(void);
 int line, isError;
 char err[50];
 
+char modifier[MAXTOKEN];
+
 int main(void) {
   line = 0;
   while (gettoken() != EOF) {
     err[0] = '\0';
     out[0] = '\0';
     name[0] = '\0';
+    modifier[0] = '\0';
     isError = 0;
     line++;
-    
+
+    if (tokentype == MODIFIER) {
+      strcpy(modifier, token);
+      gettoken();
+    }
+
     if (tokentype != NAME) {
       strcpy(err, "invalid data type");
       isError = 1;
@@ -62,7 +63,7 @@ int main(void) {
         isError = 1;
       } else {
         /* output only if there're no errors */
-        printf("%s: %s %s\n", name, out, datatype);
+        printf("%s %s: %s %s\n", modifier, name, out, datatype);
       }
     }
     
@@ -94,6 +95,8 @@ void dcl(void) {
 }
 void dirdcl(void) {
   int type;
+  int c;
+  char *p = token;
 
   if (isError)
     return;
@@ -121,9 +124,25 @@ void dirdcl(void) {
     return;
   }
   
-  while ((type = gettoken()) == PARENS || type == BRACKETS) {
+  while ((type = gettoken()) == PARENS || type == BRACKETS || type == '(') {
     if (type == PARENS) {
       strcat(out, " function returning");
+    } else if (type == '(') {
+
+      for ( ; (c = getch()) != ')' && c != '\n' && c != EOF; )
+        *p++ = c;
+        
+      if (c == ')') {
+        *p = '\0';
+        strcat(out, " function (");
+        strcat(out, token);
+        strcat(out, ") returning");
+      } else {
+        ungetch(c);
+        strcpy(err, "incomplete parens");
+        isError = 1;
+        break;
+      }
     } else {
       strcat(out, " array");
       strcat(out, token);
@@ -182,7 +201,7 @@ int gettoken(void) {
       ungetch(c);
       return tokentype = INCOMPLETE_BRACKETS;
     }
-
+    
     *p++ = ']';
     *p = '\0';
     return tokentype = BRACKETS;
@@ -191,6 +210,10 @@ int gettoken(void) {
       *p++ = c;
     *p = '\0';
     ungetch(c);
+
+    if (!strcmp(token, "const") || !strcmp(token, "static")) {
+      return tokentype = MODIFIER;
+    }
     return tokentype = NAME;
   } else
     return tokentype = c;
