@@ -1,4 +1,3 @@
-/*TODO: to be done soon*/
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
