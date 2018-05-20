@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "fcntl.h"
-#include "unistd.h"
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 void filecopy(int ifp, int ofp) {
   char c;
