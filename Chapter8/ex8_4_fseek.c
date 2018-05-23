@@ -36,6 +36,7 @@ int _fillbuf(FILE *);
 int _flushbuf(int, FILE *);
 int fflush(FILE *);
 int fclose(FILE *);
+int fseek(FILE *, long int, int);
 
 #define feof(p) (((p)->flag & _EOF) != 0)
 #define ferror(p) (((p)->flag & _ERR) != 0)
@@ -161,20 +162,52 @@ int fclose(FILE *fp) {
   return close(fp->fd);
 }
 
+int fseek(FILE *fp, long int offset, int origin) {
+  long int pos;
+
+  if (fp->flag & _ERR)
+    return EOF;
+  if (fp->flag & _READ) {
+    fp->cnt = 0;
+    fp->flag &= (~_EOF);
+  } else if (fp->flag & _WRITE) {
+    if (fflush(fp) != 0) {
+      return EOF;
+    }
+  } else {
+    return EOF;
+  }
+
+  pos = lseek(fp->fd, offset, origin);
+  if (pos == EOF) {
+    fp->cnt = 0;
+    fp->flag |= _ERR;
+    return EOF;
+  }
+
+  return 0;
+}
+
 int main() {
   FILE *fp;
   
   fp = fopen("1.txt", "w");
   putc('a', fp);
   putc('b', fp);
+  fseek(fp, 1, 0);
   putc('c', fp);
+  putc('d', fp);
+  putc('e', fp);
   fclose(fp);
 
   fp = fopen("1.txt", "r");
   putchar(getc(fp));
   putchar(getc(fp));
-  fflush(stdout);
+  putchar(getc(fp));
+  fseek(fp, 1, 0);
+  putchar(getc(fp));
   fclose(fp);
 
+  fflush(stdout);
   return 0;
 }
