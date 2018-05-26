@@ -6,7 +6,7 @@
 
 #define SIZE 3
 
-int getline(char s[], int lim) {
+int _getline(char s[], int lim) {
     int c, i;
     /*
     for (i = 0; i < lim-1 && (c = getchar()) != '\n' && c != EOF; ++i)
@@ -34,13 +34,12 @@ int getline(char s[], int lim) {
 }
 
 int main() {
-    char c;
     char s[SIZE];
     char s2[3] = "123";
     int i;
     int lim = SIZE;
 
-    int cnt = getline(s, SIZE);
+    int cnt = _getline(s, SIZE);
     
     printf("Output%d-%d-%d\n", strlen(s), cnt, strlen(s2));
     for (i = 0; i < cnt; ++i)
