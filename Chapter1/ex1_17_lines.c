@@ -2,20 +2,20 @@
 
 #define MAXLINE 1000
 
-int getline(char line[], int maxline);
+int _getline(char line[], int maxline);
 
 int main(void) {
   int len;
   char line[MAXLINE];
   
-  while ((len = getline(line, MAXLINE)) > 0) 
+  while ((len = _getline(line, MAXLINE)) > 0) 
     if (len > 80)
       printf("(%d)%s", len, line);
 
   return 0;
 }
 
-int getline(char s[] , int lim) {
+int _getline(char s[] , int lim) {
   int c, i, j;
   
   for (i = 0, j = 0; (c = getchar()) != EOF && c != '\n'; ++i) {

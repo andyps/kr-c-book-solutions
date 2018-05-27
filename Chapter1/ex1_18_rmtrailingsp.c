@@ -2,14 +2,14 @@
 
 #define MAXLINE 1000
 
-int getline(char line[], int maxline);
+int _getline(char line[], int maxline);
 int removeTrailingTabsAndSpaces(char line[]);
 
 int main(void) {
   int len;
   char line[MAXLINE];
   
-  while ((len = getline(line, MAXLINE)) > 0) 
+  while ((len = _getline(line, MAXLINE)) > 0) 
     if (removeTrailingTabsAndSpaces(line) > 0)
       printf("%s", line);
 
@@ -53,7 +53,7 @@ int removeTrailingTabsAndSpaces(char line[]) {
   return i;
 }
 
-int getline(char s[] , int lim) {
+int _getline(char s[] , int lim) {
   int c, i, j;
   
   for (i = 0, j = 0; (c = getchar()) != EOF && c != '\n'; ++i) {
